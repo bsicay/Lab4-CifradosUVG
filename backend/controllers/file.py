@@ -33,60 +33,69 @@ class FilesController:
                 
             return jsonify({
                 "filename": archivo['filename'],
-                "content": base64.b64encode(archivo['content']).decode('utf-8'),
+                "content": archivo['content'],
+                "file_hash": archivo['file_hash'],
                 "public_key": archivo['public_key'],
-                "is_signed": archivo['is_signed']
+                "signature": archivo['signature']
             }), 200
             
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     
     @jwt_required()
-    def save_file():
+    def save_file(sign):
         if 'file' not in request.files:
             return jsonify({"error": "Archivo no proporcionado"}), 400
         
         archivo = request.files['file']
         private_key = request.form.get('private_key')
         
+        if not private_key:
+            return jsonify({"error": "Clave privada no proporcionada"}), 400
+        
         try:
-            # Obtener usuario
+            private_key = private_key.replace("\\n","\n")
+            
             user_email = get_jwt_identity()
             user = UserModel.get_by_email(user_email)
-            if not user or not user['current_public_key']:
-                return jsonify({"error": "Usuario no tiene llave pública configurada"}), 400
+            
+            if not user:
+                return jsonify({"error": "Usuario no encontrado"}), 404
 
-            # Leer y cifrar archivo
             contenido = archivo.read()
-            encrypted_content = CryptoService.encrypt_with_public_key(
-                user['current_public_key'],
+
+            hasher = CryptoService.hash_data(contenido)
+            fileHash = hasher.hexdigest()
+
+            signature = CryptoService.sign_data(private_key,hasher) if(sign) else None
+            signature = base64.b64encode(signature).decode('utf-8') if signature else None
+            
+            encrypted_content = CryptoService.encrypt_with_private_key(
+                private_key,
                 contenido
             )
+            
+            contenido = base64.b64encode(encrypted_content).decode('utf-8')
 
-            # Firmar si se proporciona llave privada
-            is_signed = False
-            signature = None
-            if private_key:
-                signature = CryptoService.sign_data(private_key, contenido)
-                is_signed = True
 
-            # Guardar en base de datos
-            FileModel.save_file(
+            newFile = FileModel.save_file(
                 user_id=user['id'],
                 filename=secure_filename(archivo.filename),
-                content=encrypted_content,
+                content=contenido,
+                file_hash=fileHash,
                 public_key=user['current_public_key'],
-                is_signed=is_signed
+                signature=signature,
             )
 
             response = {
+                "id": newFile,
                 "message": "Archivo guardado",
                 "filename": secure_filename(archivo.filename),
-                "is_signed": is_signed
+                "is_signed": sign
             }
             
-            if signature:
-                response["signature"] = base64.b64encode(signature).decode('utf-8')
+            if sign:
+                response["signature"] = signature.decode('utf-8') if isinstance(signature, bytes) else signature
 
             return jsonify(response), 201
 

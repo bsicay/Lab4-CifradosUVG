@@ -2,14 +2,15 @@ from backend.models.db import execute_query
 from datetime import datetime
 
 class FileModel:
-    def save_file(user_id, filename, content, public_key, is_signed=False):
-        execute_query(
+    def save_file(user_id, filename, content, file_hash, public_key, signature):
+        cur = execute_query(
             """INSERT INTO files 
-            (user_id, filename, content, public_key, is_signed, uploaded_at) 
-            VALUES (%s, %s, %s, %s, %s, %s)""",
-            (user_id, filename, content, public_key, is_signed, datetime.now()),
+            (user_id, filename, content, file_hash, public_key, signature, uploaded_at) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, filename, content, file_hash, public_key, signature, datetime.now()),
             commit=True
         )
+        return cur.lastrowid
     
     def get_all_files():
         cur = execute_query("""
@@ -20,8 +21,12 @@ class FileModel:
         return cur.fetchall()
     
     def get_file(file_id):
-        cur = execute_query("SELECT * FROM files WHERE id = %s", (file_id,))
-        return cur.fetchone()
+        cur = execute_query(f"SELECT * FROM files WHERE id = {file_id}")
+        if cur.description:
+            columns = [col[0] for col in cur.description]
+            user = cur.fetchone()
+            return dict(zip(columns, user)) if user else None
+        return None
     
     
     

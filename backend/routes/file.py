@@ -14,10 +14,11 @@ def get_files():
 def download_file(file_id):
     return FilesController.download_file(file_id)
 
-@file_bp.route('/guardar', methods=['POST'])
+@file_bp.route('/guardar/', defaults={'sign': False}, methods=['POST'])
+@file_bp.route('/guardar/<bool:sign>', methods=['POST'])
 @jwt_required()
-def save_file():
-    return FilesController.save_file()
+def save_file(sign):
+    return FilesController.save_file(sign)
 
 @file_bp.route('/verificar/<int:file_id>', methods=['POST'])
 @jwt_required()

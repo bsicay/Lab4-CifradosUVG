@@ -20,18 +20,22 @@ class AuthService:
     
     def refresh(refresh_token):
         try:
-            print(f"REFRESH TOKEN: {refresh_token}")
             if UserModel.is_token_revoked(refresh_token):
-                return {'error': 'token_revoked'}
+                return {'error': 'Token revocado'}
             
             decoded = decode_token(refresh_token)
             user_email = decoded['sub']
             
-            UserModel.revoke_refresh_token(refresh_token)
+            user = UserModel.get_by_email(user_email)
+            
+            UserModel.revoke_refresh_token(
+                user_id=user['id'],
+                token=refresh_token
+                )
             
             new_access_token = create_access_token(
                 identity=user_email,
-                fresh=False
+                fresh=True
             )
             new_refresh_token = create_refresh_token(
                 identity=user_email
@@ -42,11 +46,9 @@ class AuthService:
                 'refresh_token': new_refresh_token
             }
         except ExpiredSignatureError as e:
-            print(f"EXPIRED SIGNATURE ERROR: {e}")
-            return {'error': 'refresh_token_expired'}
+            return {'error': 'Token expirado'}
         except Exception as e:
-            print(f"ERROR: {e}")
-            return {'error': 'invalid_refresh_token'}
+            return {'error': 'Token no válido'}
     
     def register(email, password):
         if UserModel.get_by_email(email):

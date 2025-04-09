@@ -2,17 +2,23 @@ from flask import Flask, jsonify
 from flask_mysqldb import MySQL
 from flask_jwt_extended import JWTManager
 from werkzeug.exceptions import HTTPException
+from backend.utils.BooleanConverter import BooleanConverter
 
 mysql = MySQL()
 jwt = JWTManager()
+app = Flask(__name__)
 
 def create_app():
-    app = Flask(__name__)
+    from backend.routes.auth import auth_bp
+    from backend.routes.file import file_bp
+    from backend.routes.key import key_bp
+
     app.config.update({
     'MAX_CONTENT_LENGTH': 5 * 1024 * 1024,
     'ALLOWED_EXTENSIONS': {'txt', 'pdf', 'docx', 'jpg', 'png'},
     })
     app.config.from_object('backend.config.Config')
+    app.url_map.converters['bool'] = BooleanConverter
     
     mysql.init_app(app)
     jwt.init_app(app)
@@ -24,10 +30,6 @@ def create_app():
             "message": "El servidor está funcionando correctamente",
             "service": "Backend Lab4"
         })
-    
-    from backend.routes.auth import auth_bp
-    from backend.routes.file import file_bp
-    from backend.routes.key import key_bp
     
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(file_bp, url_prefix='/file')
