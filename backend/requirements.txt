@@ -3,3 +3,4 @@ flask-mysqldb
 flask-jwt-extended
 pycryptodome
 python-dotenv
+flask-cors

@@ -3,10 +3,15 @@ from flask_mysqldb import MySQL
 from flask_jwt_extended import JWTManager
 from werkzeug.exceptions import HTTPException
 from backend.utils.BooleanConverter import BooleanConverter
+from flask_cors import CORS
+
 
 mysql = MySQL()
 jwt = JWTManager()
 app = Flask(__name__)
+
+CORS(app, origins=["http://127.0.0.1:3000"], supports_credentials=True)
+
 
 def create_app():
     from backend.routes.auth import auth_bp
