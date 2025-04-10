@@ -14,7 +14,7 @@ const Home = () => {
   const [fileToVerify, setFileToVerify] = useState(null);
   const [ownerEmail, setOwnerEmail] = useState("");
   const [verifyResult, setVerifyResult] = useState("");
-
+  const [algorithm, setAlgorithm] = useState("rsa");
 
   const navigate = useNavigate();
 
@@ -41,10 +41,15 @@ const Home = () => {
   };
 
   const handleKeyDownload = () => {
-    keyService.generateKeyPair()
+    /*
+      Llamamos al servicio de llaves pero
+      pasándole el algoritmo que se seleccionó
+    */
+    keyService.generateKeyPair(algorithm)
       .then((response) => {
         const { private_key, public_key } = response.data;
 
+        // Descargamos la clave privada
         const privateBlob = new Blob([private_key], { type: "text/plain" });
         const privateUrl = URL.createObjectURL(privateBlob);
         const privateLink = document.createElement("a");
@@ -53,6 +58,7 @@ const Home = () => {
         privateLink.click();
         URL.revokeObjectURL(privateUrl);
 
+        // Descargamos la clave pública
         const publicBlob = new Blob([public_key], { type: "text/plain" });
         const publicUrl = URL.createObjectURL(publicBlob);
         const publicLink = document.createElement("a");
@@ -141,6 +147,31 @@ const Home = () => {
       {currentUser && (
         <>
           <h1 className="display-4 mb-4">Bienvenido</h1>
+        {/* elegir el algoritmo */}
+        <div className="mb-3">
+            <label className="me-2">Elige el algoritmo:</label>
+            <input
+              type="radio"
+              id="rsa"
+              name="algorithm"
+              value="rsa"
+              checked={algorithm === "rsa"}
+              onChange={(e) => setAlgorithm(e.target.value)}
+            />
+            <label htmlFor="rsa" className="me-3 ms-1">RSA</label>
+
+            <input
+              type="radio"
+              id="ecc"
+              name="algorithm"
+              value="ecc"
+              checked={algorithm === "ecc"}
+              onChange={(e) => setAlgorithm(e.target.value)}
+            />
+            <label htmlFor="ecc" className="ms-1">ECC</label>
+          </div>
+
+
           <button className="btn btn-primary mb-4" onClick={handleKeyDownload}>
             Generar par de llaves
           </button>
