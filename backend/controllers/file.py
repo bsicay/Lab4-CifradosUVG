@@ -34,9 +34,7 @@ class FilesController:
             return jsonify({
                 "filename": archivo['filename'],
                 "content": archivo['content'],
-                "file_hash": archivo['file_hash'],
                 "public_key": archivo['public_key'],
-                "signature": archivo['signature']
             }), 200
             
         except Exception as e:
@@ -58,7 +56,6 @@ class FilesController:
             
             user_email = get_jwt_identity()
             user = UserModel.get_by_email(user_email)
-            
             if not user:
                 return jsonify({"error": "Usuario no encontrado"}), 404
 
@@ -79,10 +76,9 @@ class FilesController:
 
 
             newFile = FileModel.save_file(
-                user_id=user['id'],
+                owner=user_email,
                 filename=secure_filename(archivo.filename),
                 content=contenido,
-                file_hash=fileHash,
                 public_key=user['current_public_key'],
                 signature=signature,
             )
@@ -93,9 +89,6 @@ class FilesController:
                 "filename": secure_filename(archivo.filename),
                 "is_signed": sign
             }
-            
-            if sign:
-                response["signature"] = signature.decode('utf-8') if isinstance(signature, bytes) else signature
 
             return jsonify(response), 201
 
@@ -103,34 +96,47 @@ class FilesController:
             return jsonify({"error": str(e)}), 500
         
     @jwt_required()
-    def verificar_archivo(file_id):
+    def verificar_archivo():
+        if 'file' not in request.files:
+            return jsonify({"error": "Archivo no proporcionado"}), 400
+        
+        archivo = request.files['file']
+        owner = request.form.get('owner')
+        
+        if not owner:
+            return jsonify({"error": "Correo de propietario no proporcionado"}), 400
+        
         try:
-            archivo = FileModel.get_file(file_id)
-            if not archivo:
-                return jsonify({"error": "Archivo no encontrado"}), 404
-                
-            if not archivo['is_signed']:
-                return jsonify({"error": "Archivo no está firmado"}), 400
-                
-            signature = request.json.get('signature')
-            if not signature:
-                return jsonify({"error": "Firma requerida"}), 400
-                
-            decrypted_content = CryptoService.decrypt_with_private_key(
-                request.json.get('private_key'),
-                archivo['content']
-            )
             
-            is_valid = CryptoService.verify_signature(
-                archivo['public_key'],
-                decrypted_content,
+            file = FileModel.get_file_by_owner_name(owner, secure_filename(archivo.filename))
+            if not file:
+                return jsonify({"error": "Archivo no encontrado en la base de datos"}), 404
+
+            contenido = archivo.read()
+
+            hasher = CryptoService.hash_data(contenido)
+
+            signature = file['signature']
+            
+            if not signature:
+                return jsonify({"error": "El archivo no tiene firma digital"}), 400
+            
+            signature = base64.b64decode(signature.encode('utf-8'))
+            
+            public_key = file['public_key']
+        
+            correctFile = CryptoService.verify_signature(
+                public_key,
+                hasher,
                 signature
             )
-            
-            return jsonify({
-                "is_authentic": is_valid,
-                "verified_at": datetime.now(datetime.timezone.utc).isoformat()
-            }), 200
-            
+
+            response = {
+                "message": "Archivo correcto" if (correctFile) else "El archivo no coincide con la firma almacenada",
+                "filename": secure_filename(archivo.filename),
+            }
+
+            return jsonify(response), 201
+
         except Exception as e:
             return jsonify({"error": str(e)}), 500

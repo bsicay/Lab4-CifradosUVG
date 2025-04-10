@@ -13,7 +13,7 @@ CREATE TABLE users (
 CREATE TABLE IF NOT EXISTS files (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    filename VARCHAR(255) NOT NULL,
+    filename VARCHAR(255) NOT NULL UNIQUE,
     content LONGTEXT NOT NULL,
     file_hash VARCHAR(255) NOT NULL,
     public_key TEXT NOT NULL,

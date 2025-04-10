@@ -20,7 +20,7 @@ def download_file(file_id):
 def save_file(sign):
     return FilesController.save_file(sign)
 
-@file_bp.route('/verificar/<int:file_id>', methods=['POST'])
+@file_bp.route('/verificar', methods=['POST'])
 @jwt_required()
-def verificar_archivo(file_id):
-    return FilesController.verificar_archivo(file_id)
+def verificar_archivo():
+    return FilesController.verificar_archivo()
