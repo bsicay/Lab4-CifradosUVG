@@ -65,11 +65,18 @@ class FilesController:
 
             signature = CryptoService.sign_data(private_key,hasher) if(sign) else None
             signature = base64.b64encode(signature).decode('utf-8') if signature else None
+
+            public_key = user['current_public_key']
+            if not public_key:
+                return jsonify({"error": "No se ha generado la clave pública"}), 400
+    
             
-            encrypted_content = CryptoService.encrypt_with_private_key(
-                private_key,
-                contenido
-            )
+            # encrypted_content = CryptoService.encrypt_with_private_key(
+            #     private_key,
+            #     contenido
+            # )
+            encrypted_content = CryptoService.encrypt_with_public_key(public_key.encode('utf-8'), contenido)
+
             
             contenido = base64.b64encode(encrypted_content).decode('utf-8')
 
