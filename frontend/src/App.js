@@ -26,19 +26,20 @@ function App() {
     <div>
       <nav className="navbar navbar-expand navbar-dark bg-dark">
         <div className="navbar-nav mr-auto">
+        {currentUser && 
           <li className="nav-item">
             <Link to={"/home"} className="nav-link">
               Home
             </Link>
           </li>
-
-          {currentUser && (
+}
+          {/* {currentUser && (
             <li className="nav-item">
               <Link to={"/private"} className="nav-link">
                 Private
               </Link>
             </li>
-          )}
+          )} */}
         </div>
 
         {currentUser ? (
