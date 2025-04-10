@@ -26,11 +26,14 @@ class FileModel:
     
     def get_all_files():
         cur = execute_query("""
-            SELECT f.*, u.email 
-            FROM files f
-            JOIN users u ON f.user_id = u.id
+            SELECT *
+            FROM files
         """)
-        return cur.fetchall()
+        if cur.description:
+            columns = [col[0] for col in cur.description]
+            files = cur.fetchall()
+            return [dict(zip(columns, file)) for file in files]
+        return []
     
     def get_file(file_id):
         cur = execute_query(f"SELECT * FROM files WHERE id = {file_id}")

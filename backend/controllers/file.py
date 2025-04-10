@@ -16,9 +16,9 @@ class FilesController:
             return jsonify([{
                 "id": f['id'],
                 "filename": f['filename'],
-                "user_email": UserModel.get_by_id(f['user_id'])['email'],
+                "owner": f['owner'],
                 "uploaded_at": f['uploaded_at'].isoformat(),
-                "is_signed": f['is_signed']
+                "is_signed": True if(f['signature'] is not None) else False,
             } for f in archivos]), 200
             
         except Exception as e:
@@ -62,7 +62,6 @@ class FilesController:
             contenido = archivo.read()
 
             hasher = CryptoService.hash_data(contenido)
-            fileHash = hasher.hexdigest()
 
             signature = CryptoService.sign_data(private_key,hasher) if(sign) else None
             signature = base64.b64encode(signature).decode('utf-8') if signature else None
@@ -73,7 +72,6 @@ class FilesController:
             )
             
             contenido = base64.b64encode(encrypted_content).decode('utf-8')
-
 
             newFile = FileModel.save_file(
                 owner=user_email,
