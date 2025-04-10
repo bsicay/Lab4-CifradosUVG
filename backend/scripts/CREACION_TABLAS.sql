@@ -11,15 +11,13 @@ CREATE TABLE users (
 );
 
 CREATE TABLE IF NOT EXISTS files (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    filename VARCHAR(255) NOT NULL UNIQUE,
+	id INT AUTO_INCREMENT PRIMARY KEY,
+    owner VARCHAR(255) NOT NULL,
+    filename VARCHAR(255) NOT NULL,
     content LONGTEXT NOT NULL,
-    file_hash VARCHAR(255) NOT NULL,
     public_key TEXT NOT NULL,
     signature TEXT,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS revoked_tokens (
