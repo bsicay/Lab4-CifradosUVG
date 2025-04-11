@@ -29,60 +29,15 @@ class CryptoService:
             raise ValueError("Algoritmo no soportado. Usa 'rsa' o 'ecc'.")
 
         return private_key, public_key
-        
-    
-    # def encrypt_with_private_key(private_key, data):
-    #     key = RSA.import_key(private_key)
-    #     cipher = PKCS1_OAEP.new(key)
-    #     return cipher.encrypt(data)
-    
-    # def decrypt_with_public_key(public_key, encrypted_data):
-    #     key = RSA.import_key(public_key)
-    #     cipher = PKCS1_OAEP.new(key)
-    #     return cipher.decrypt(encrypted_data)
 
-
-    # def encrypt_with_public_key(public_key, plaintext):
-    #     """
-    #     - Para RSA: Cifrado asimétrico con PKCS1_OAEP.
-    #     - Para ECC: Emplea un cifrado híbrido estilo ECIES (ECDH + AES).
-    #     Devuelve bytes (o un dict serializado en JSON) que contiene
-    #     todo lo necesario para descifrar.
-    #     """
-    #     if b'RSA' in public_key:
-    #         # === RSA ===
-    #         rsa_key = RSA.import_key(public_key)
-    #         cipher_rsa = PKCS1_OAEP.new(rsa_key)
-    #         ciphertext = cipher_rsa.encrypt(plaintext)
-    #         return ciphertext
-    #     else:
-    #         # === ECC (ECIES simplificado) ===
-    #         ecc_pub_key = ECC.import_key(public_key)
-    #         # 1) Generar clave efímera
-    #         ephemeral_key = ECC.generate(curve=ecc_pub_key.curve)
-    #         # 2) Intercambio ECDH
-    #         shared_secret = ephemeral_key.exchange(ecc_pub_key)
-    #         # 3) Derivar clave AES (usamos sha256 del shared_secret)
-    #         kdf = SHA256.new(shared_secret)
-    #         aes_key = kdf.digest()  # 32 bytes
-
-    #         # 4) Cifrar con AES (modo GCM, por ejemplo)
-    #         cipher_aes = AES.new(aes_key, AES.MODE_GCM)
-    #         ciphertext, tag = cipher_aes.encrypt_and_digest(plaintext)
-
-    #         # 5) Adjuntar la clave pública efímera, nonce y tag
-    #         ephemeral_pub_bytes = ephemeral_key.public_key().export_key(format='DER')
-    #         package = {
-    #             "ephemeral_pub": base64.b64encode(ephemeral_pub_bytes).decode('utf-8'),
-    #             "nonce": base64.b64encode(cipher_aes.nonce).decode('utf-8'),
-    #             "tag": base64.b64encode(tag).decode('utf-8'),
-    #             "ciphertext": base64.b64encode(ciphertext).decode('utf-8')
-    #         }
-    #         # Lo convertimos a JSON y luego a bytes
-    #         return json.dumps(package).encode('utf-8')
 
     def encrypt_with_public_key(public_key, plaintext):
-        if b'RSA' in public_key:
+        if isinstance(public_key, bytes):
+            public_key_str = public_key.decode('utf-8')
+        else:
+            public_key_str = public_key  # asume que ya es str
+
+        if 'RSA' in public_key_str or 'BEGIN PUBLIC KEY' in public_key_str:
             rsa_key = RSA.import_key(public_key)
             cipher_rsa = PKCS1_OAEP.new(rsa_key)
             ciphertext = cipher_rsa.encrypt(plaintext)
@@ -177,9 +132,10 @@ class CryptoService:
             private_key_str = private_key.decode('utf-8')
         else:
             private_key_str = private_key  # asume que ya es str
-
+        print(private_key_str)
         # Revisar si es RSA o ECC basándonos en la cadena resultante
-        if 'RSA' in private_key_str:
+        # if b'RSA' in private_key_str or b'BEGIN RSA PUBLIC KEY' in private_key_str:
+        if 'RSA' in private_key_str or 'BEGIN RSA PRIVATE KEY' in private_key_str:
             # Importar como RSA
             key = RSA.import_key(private_key_str.encode('utf-8'))
             return pkcs1_15.new(key).sign(hash_obj)
@@ -199,7 +155,7 @@ class CryptoService:
         else:
             public_key_str = public_key  # asume que ya es str
 
-        if 'RSA' in public_key_str:
+        if 'RSA' in public_key_str or 'BEGIN PUBLIC KEY' in public_key_str:
         # Importar como RSA
             key = RSA.import_key(public_key)
             pkcs1_15.new(key).verify(hash_obj, signature)
