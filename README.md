@@ -10,8 +10,6 @@ PROJECT DESCRIPTION
 -->
 ## 📜 Descripción
 
-
-
 El sistema permite a los usuarios registrarse y autenticarse mediante JSON Web Tokens (JWT), generar llaves públicas y privadas (ECC o RSA), firmar archivos digitalmente, verificar firmas, y validar la integridad de archivos con SHA-256.
 
 
@@ -111,7 +109,27 @@ Desarrollar una aplicación segura que permita:
 
 <p align="right">(<a href="#readme-top">Ir al inicio</a>)</p>
 
----
+## ⚙️ Instrucciones de ejecución
+
+### Frontend
+1. Instalar dependencias:
+```
+npm install
+```
+2. Ejecutar proyecto (debe estar dentro del directorio /frontend)
+```
+npm run start
+```
+
+### Backend
+1. Instalar dependencias (debe estar dentro del directorio /backend):
+```
+pip install -r requirements.txt
+```
+2. Ejecutar proyecto (debe estar dentro del directorio raíz)
+```
+python -m backend.run
+```
 
 ## 🛡️ Seguridad
 
