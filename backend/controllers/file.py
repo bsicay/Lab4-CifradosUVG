@@ -75,10 +75,8 @@ class FilesController:
             #     private_key,
             #     contenido
             # )
-            encrypted_content = CryptoService.encrypt_with_public_key(public_key.encode('utf-8'), contenido)
-
             
-            contenido = base64.b64encode(encrypted_content).decode('utf-8')
+            contenido = base64.b64encode(contenido).decode('utf-8')
 
             newFile = FileModel.save_file(
                 owner=user_email,
