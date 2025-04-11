@@ -36,13 +36,13 @@ class CryptoService:
             public_key_str = public_key.decode('utf-8')
         else:
             public_key_str = public_key  # asume que ya es str
-
-        if 'RSA' in public_key_str or 'BEGIN PUBLIC KEY' in public_key_str:
+        try:
             rsa_key = RSA.import_key(public_key)
             cipher_rsa = PKCS1_OAEP.new(rsa_key)
             ciphertext = cipher_rsa.encrypt(plaintext)
             return ciphertext
-        else:
+
+        except (ValueError, IndexError, TypeError):
             # ECC con cryptography
             peer_public_key = serialization.load_pem_public_key(public_key)
 
@@ -83,6 +83,53 @@ class CryptoService:
             }
 
             return json.dumps(package).encode('utf-8')
+
+        # if 'RSA' in public_key_str or 'BEGIN PUBLIC KEY' in public_key_str:
+        #     rsa_key = RSA.import_key(public_key)
+        #     cipher_rsa = PKCS1_OAEP.new(rsa_key)
+        #     ciphertext = cipher_rsa.encrypt(plaintext)
+        #     return ciphertext
+        # else:
+        #     # ECC con cryptography
+        #     peer_public_key = serialization.load_pem_public_key(public_key)
+
+        #     # Generar clave efímera
+        #     ephemeral_key = ec.generate_private_key(ec.SECP256R1())
+
+        #     shared_key = ephemeral_key.exchange(ec.ECDH(), peer_public_key)
+
+        #     # Derivar clave AES desde shared_key
+        #     derived_key = HKDF(
+        #         algorithm=hashes.SHA256(),
+        #         length=32,
+        #         salt=None,
+        #         info=b'handshake data',
+        #         backend=default_backend()
+        #     ).derive(shared_key)
+
+        #     # AES GCM
+        #     nonce = os.urandom(12)
+        #     encryptor = Cipher(
+        #         algorithms.AES(derived_key),
+        #         modes.GCM(nonce),
+        #         backend=default_backend()
+        #     ).encryptor()
+
+        #     ciphertext = encryptor.update(plaintext) + encryptor.finalize()
+
+        #     ephemeral_public_bytes = ephemeral_key.public_key().public_bytes(
+        #         serialization.Encoding.PEM,
+        #         serialization.PublicFormat.SubjectPublicKeyInfo
+        #     )
+
+        #     package = {
+        #         "ephemeral_pub": base64.b64encode(ephemeral_public_bytes).decode(),
+        #         "nonce": base64.b64encode(nonce).decode(),
+        #         "tag": base64.b64encode(encryptor.tag).decode(),
+        #         "ciphertext": base64.b64encode(ciphertext).decode()
+        #     }
+
+        #     return json.dumps(package).encode('utf-8')
  
  
 
@@ -132,49 +179,53 @@ class CryptoService:
             private_key_str = private_key.decode('utf-8')
         else:
             private_key_str = private_key  # asume que ya es str
-        print(private_key_str)
+        # print(private_key_str)
         # Revisar si es RSA o ECC basándonos en la cadena resultante
         # if b'RSA' in private_key_str or b'BEGIN RSA PUBLIC KEY' in private_key_str:
-        if 'RSA' in private_key_str or 'BEGIN RSA PRIVATE KEY' in private_key_str:
-            # Importar como RSA
+        try:
             key = RSA.import_key(private_key_str.encode('utf-8'))
             return pkcs1_15.new(key).sign(hash_obj)
-        else:
-            # Importar como ECC
+        except (ValueError, IndexError, TypeError):
             key = ECC.import_key(private_key_str)
             signer = DSS.new(key, 'fips-186-3')
             return signer.sign(hash_obj)
+
+        # if 'RSA' in private_key_str or 'BEGIN RSA PRIVATE KEY' in private_key_str:
+        #     # Importar como RSA
+        #     key = RSA.import_key(private_key_str.encode('utf-8'))
+        #     return pkcs1_15.new(key).sign(hash_obj)
+        # else:
+        #     # Importar como ECC
+        #     key = ECC.import_key(private_key_str)
+        #     signer = DSS.new(key, 'fips-186-3')
+        #     return signer.sign(hash_obj)
 
     
     def verify_signature(public_key, hash_obj, signature):
         """
         Verifica la firma, ya sea RSA o ECC, dependiendo de la clave dada.
         """
+        # Asegurar que la clave sea tipo `str`
         if isinstance(public_key, bytes):
             public_key_str = public_key.decode('utf-8')
         else:
-            public_key_str = public_key  # asume que ya es str
+            public_key_str = public_key
 
-        if 'RSA' in public_key_str or 'BEGIN PUBLIC KEY' in public_key_str:
-        # Importar como RSA
-            key = RSA.import_key(public_key)
-            pkcs1_15.new(key).verify(hash_obj, signature)
-        else:
-            # Importar como ECC
-            key = ECC.import_key(public_key)
-            verifier = DSS.new(key, 'fips-186-3')
-            verifier.verify(hash_obj, signature)
-        return True
-        
         try:
-            if b'RSA' in public_key:
-                pkcs1_15.new(key).verify(hash_obj, signature)
-            else:
+            # Intentar como RSA
+            key = RSA.import_key(public_key_str.encode('utf-8'))
+            pkcs1_15.new(key).verify(hash_obj, signature)
+            return True
+        except (ValueError, IndexError, TypeError):
+            try:
+                # Intentar como ECC
+                key = ECC.import_key(public_key_str)
                 verifier = DSS.new(key, 'fips-186-3')
                 verifier.verify(hash_obj, signature)
-            return True
-        except (ValueError, TypeError):
-            return False
+                return True
+            except (ValueError, TypeError):
+                return False
+
         
     def hash_data(data):
         hasher = SHA256.new(data)
